@@ -1,0 +1,34 @@
+{
+  "HARDWARE_REGISTRY": {
+    "VPP_GRID_POWER": {
+      "port": 501,
+      "scale_factor": 1.0,
+      "unit": "kW",
+      "description": "VPP 전력망 차익거래 송전량"
+    },
+    "THERMAL_CURRENT": {
+      "port": 801,
+      "scale_factor": 1.0,
+      "unit": "°C",
+      "description": "AI 랙 현재 실측 핫스팟 온도"
+    },
+    "THERMAL_PREDICT": {
+      "port": 802,
+      "scale_factor": 1.0,
+      "unit": "°C",
+      "description": "45분 뒤 스케줄링 예측 온도"
+    },
+    "LIQUID_TURBIDITY": {
+      "port": 901,
+      "scale_factor": 1.0,
+      "unit": "%",
+      "description": "액침냉각 수조 용액 탁도"
+    },
+    "EFUSE_STATUS": {
+      "port": 999,
+      "scale_factor": 1.0,
+      "unit": "Status",
+      "description": "eFuse 암호학적 무결성(자폭) 상태"
+    }
+  }
+}

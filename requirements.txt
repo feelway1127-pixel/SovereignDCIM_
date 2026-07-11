@@ -1,0 +1,15 @@
+# --- Deep Learning & PINN Engine ---
+torch>=2.1.0
+numpy>=1.24.0
+scipy>=1.10.0
+
+# --- eBPF & Kernel Telemetry ---
+bcc>=0.28.0
+
+# --- Cryptography (Two-Man Rule Auth) ---
+cryptography>=41.0.0
+
+# --- Web & API Server ---
+Flask==3.0.3
+gunicorn==22.0.0
+requests>=2.31.0

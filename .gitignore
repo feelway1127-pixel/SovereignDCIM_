@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+
+# Database (Never commit local databases!)
+*.db
+*.sqlite3
+
+# Compiled Objects & Binaries
+*.o
+core/nvme_opal_purge
