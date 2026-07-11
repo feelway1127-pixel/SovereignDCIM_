@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>dcim.kr - Ultimate Sovereign AI Manager</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { 
+            --bg: #0b0d14; --panel: #151822; --border: #2a2d3d; 
+            --text-main: #f8fafc; --text-muted: #94a3b8;
+            --blue: #3b82f6; --green: #10b981; --orange: #f59e0b; --red: #ef4444; --purple: #8b5cf6;
+        }
+        body { margin: 0; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text-main); display: flex; height: 100vh; overflow: hidden; user-select: none; }
+        
+        .sidebar { width: 260px; background: #07090e; border-right: 1px solid var(--border); display: flex; flex-direction: column; z-index: 50; }
+        .logo { padding: 20px; font-size: 20px; font-weight: 800; color: #fff; letter-spacing: -0.5px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center;}
+        .logo span { color: var(--blue); }
+        .badge-oob { font-size: 9px; padding: 3px 6px; background: rgba(16,185,129,0.1); border: 1px solid var(--green); color: var(--green); border-radius: 3px; font-family: 'JetBrains Mono'; }
+        
+        .tree-container { padding: 15px 10px; flex: 1; overflow-y: auto; font-size: 12px; color: var(--text-muted); }
+        details { padding-left: 15px; margin-bottom: 2px; }
+        summary { cursor: pointer; padding: 6px; border-radius: 4px; display: flex; align-items: center; gap: 5px; }
+        summary:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
+        .tree-leaf { padding: 6px 10px 6px 30px; cursor: pointer; border-radius: 4px; display: flex; align-items: center; gap: 5px; }
+        .tree-leaf:hover { background: rgba(255,255,255,0.05); color: var(--text-main); }
+        .tree-leaf.active { background: rgba(59, 130, 246, 0.15); color: var(--blue); border-left: 2px solid var(--blue); }
+
+        .user-info { padding: 15px; border-top: 1px solid var(--border); font-size: 12px; }
+        .btn-zero { color: var(--text-muted); padding: 10px; cursor: pointer; font-size: 11px; display: flex; align-items: center; gap: 5px; opacity: 0.7; transition: 0.2s;}
+        .btn-zero:hover { color: var(--red); opacity: 1; background: rgba(239, 68, 68, 0.1); border-radius: 4px;}
+
+        .main { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--bg); position: relative;}
+        .topbar { height: 50px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: var(--panel); }
+        .nav-tabs { display: flex; gap: 2px; height: 100%; }
+        .tab-btn { background: transparent; border: none; color: var(--text-muted); font-size: 13px; font-weight: 600; padding: 0 20px; cursor: pointer; border-bottom: 2px solid transparent; font-family: 'Inter'; transition: 0.2s;}
+        .tab-btn:hover { color: var(--text-main); }
+        .tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); background: rgba(59, 130, 246, 0.05); }
+
+        .content-area { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .view-section { display: none; flex: 1; flex-direction: column; gap: 15px; animation: fadeIn 0.3s; }
+        .view-section.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 6px; padding: 15px; position: relative;}
+        .panel-title { font-size: 13px; font-weight: 600; margin: 0 0 15px 0; color: #fff; display: flex; justify-content: space-between; align-items: center; }
+        
+        .esg-kpi-bar { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+        .kpi-box { background: #0b0d14; border: 1px solid var(--border); padding: 12px; border-radius: 6px; position: relative; }
+        .kpi-val { font-family: 'JetBrains Mono'; font-size: 20px; font-weight: 700; margin: 5px 0; display:flex; align-items:baseline; gap:5px;}
+        .kpi-unit { font-size: 11px; color: var(--text-muted); font-weight: normal; font-family: 'Inter';}
+        .ai-badge { position: absolute; top: 10px; right: 10px; font-size: 9px; padding: 2px 4px; border-radius: 3px; background: rgba(59, 130, 246, 0.15); color: var(--blue); border: 1px solid var(--blue); font-family: 'JetBrains Mono';}
+        .ai-badge.anomaly { background: rgba(239, 68, 68, 0.15); color: var(--red); border-color: var(--red); }
+        
+        .workload-controls { display: flex; gap: 5px;}
+        .w-btn { flex: 1; padding: 10px; background: #0b0d14; border: 1px solid var(--border); color: var(--text-muted); font-size: 11px; font-weight: 600; cursor: pointer; border-radius: 4px; transition: 0.2s; }
+        .w-btn:hover { border-color: var(--blue); color: var(--blue); }
+        .w-btn.active { background: rgba(59, 130, 246, 0.1); border-color: var(--blue); color: var(--blue); }
+        .w-btn.danger.active { background: rgba(239, 68, 68, 0.1); border-color: var(--red); color: var(--red); }
+
+        .canvas-container { width: 100%; height: 350px; background: #000; border: 1px solid var(--border); border-radius: 4px; position: relative; cursor: crosshair;}
+        canvas { width: 100%; height: 100%; display: block; }
+        
+        .alarm-list { height: 120px; overflow-y: auto; display: flex; flex-direction: column; gap: 5px; }
+        .alarm-item { background: rgba(239, 68, 68, 0.1); border-left: 3px solid var(--red); padding: 8px 12px; font-size: 11px; display: flex; justify-content: space-between; align-items: center; border-radius: 0 4px 4px 0;}
+        .btn-ack { background: rgba(255,255,255,0.1); border: none; color: #fff; font-size: 9px; padding: 4px 8px; border-radius: 3px; cursor: pointer; transition: 0.2s;}
+        .btn-ack:hover { background: var(--green); }
+
+        .audit-log { font-family: 'JetBrains Mono'; font-size: 10px; color: var(--text-muted); overflow-y: auto; height: 120px; background: #000; padding: 10px; border: 1px solid var(--border); border-radius: 4px;}
+
+        /* Drill-down Panel */
+        .drilldown-panel { position: absolute; top: 0; right: -400px; width: 350px; height: 100%; background: #0b0d14; border-left: 1px solid var(--border); box-shadow: -10px 0 30px rgba(0,0,0,0.5); transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1); z-index: 100; display: flex; flex-direction: column; }
+        .drilldown-panel.open { right: 0; }
+        .drill-header { padding: 15px 20px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; background: var(--panel); }
+        .drill-content { padding: 20px; flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 20px; }
+        .detail-row { display: flex; justify-content: space-between; font-size: 12px; border-bottom: 1px solid var(--border); padding: 8px 0; }
+        .detail-val { font-family: 'JetBrains Mono'; color: #fff; font-weight: bold; }
+
+        .rack-mini { display: flex; flex-direction: column-reverse; gap: 1px; border: 2px solid #334155; padding: 3px; background: #1a1d2d; border-radius: 4px; width: 100px; margin: 0 auto;}
+        .u-slot { height: 6px; background: #0f111a; border: 1px solid #1e293b; }
+        .u-slot.active { background: var(--blue); }
+        .u-slot.hot { background: var(--red); animation: pulse 1s infinite alternate;}
+        @keyframes pulse { from { opacity: 0.7; } to { opacity: 1; box-shadow: 0 0 8px var(--red);} }
+
+        /* Elevation Tab */
+        .elevation-container { display: flex; gap: 20px; justify-content: center; background: #0b0d14; padding: 20px; border: 1px solid var(--border); border-radius: 4px; min-height: 400px;}
+        .rack-lg { width: 160px; background: #1a1d2d; border: 2px solid #334155; border-radius: 4px; padding: 4px; display: flex; flex-direction: column-reverse; gap: 1px; }
+        .u-slot-lg { height: 12px; background: #0f111a; border: 1px solid #1e293b; display: flex; justify-content: space-between; align-items: center; padding: 0 4px; font-family: 'JetBrains Mono'; font-size: 8px; color: #475569;}
+
+        /* Topology Tab */
+        .topo-container { width: 100%; height: 400px; background: #0b0d14; border: 1px solid var(--border); border-radius: 4px; position: relative; }
+        .node { position: absolute; background: var(--panel); border: 2px solid var(--border); border-radius: 6px; padding: 8px; width: 100px; text-align: center; font-size: 10px; font-weight: 600; z-index: 2;}
+        .node.core { top: 20px; left: calc(50% - 50px); border-color: var(--orange); }
+        .node.spine { top: 120px; border-color: var(--green); }
+        .node.leaf { top: 250px; border-color: var(--blue); }
+        .topo-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+        .link { stroke: #334155; stroke-width: 2; fill: none; }
+        .link.active { stroke: var(--blue); stroke-width: 3; stroke-dasharray: 4; animation: dash 1s linear infinite; }
+        .link.hot { stroke: var(--red); stroke-width: 3; }
+
+        /* Modal */
+        .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.85); z-index:999; align-items:center; justify-content:center; }
+        .modal.active { display: flex; }
+        .modal-content { background: var(--panel); border: 1px solid var(--red); width: 450px; padding: 25px; border-radius: 6px; }
+        .input-pw { width: 100%; padding: 10px; margin: 15px 0; background: #000; border: 1px solid var(--border); color: #fff; font-family: 'JetBrains Mono'; border-radius: 4px;}
+    </style>
+</head>
+<body>
+
+    <div class="modal" id="reauth-modal">
+        <div class="modal-content">
+            <h3 style="color: var(--red); margin-top:0; font-size: 16px;">⚠️ Sovereign Hardware Zeroization</h3>
+            <p style="font-size:12px; color:var(--text-muted); line-height: 1.5;">NIST SP 800-88 규격에 따라 암호화 키를 파기합니다. <strong>관리자 비밀번호 (1147)</strong>를 입력하십시오.</p>
+            <input type="password" id="reauth-pw" class="input-pw" placeholder="Enter Admin Password">
+            <p id="reauth-error" style="color:var(--red); font-size:12px; display:none;">인증 실패.</p>
+            <div style="display:flex; justify-content:flex-end; gap:10px; margin-top: 20px;">
+                <button class="w-btn" onclick="document.getElementById('reauth-modal').classList.remove('active')">취소</button>
+                <button class="w-btn" style="color:#fff; background:var(--red); border-color:var(--red);" onclick="executePurge()">승인 및 파기</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="sidebar">
+        <div class="logo">dcim<span>.kr</span> <div class="badge-oob">OOB SECURE</div></div>
+        
+        <div style="padding: 15px 10px; font-size: 10px; font-weight: bold; color: #475569;">ASSET HIERARCHY</div>
+        <div class="tree-container">
+            <details open>
+                <summary>🏢 Tainan HQ Site</summary>
+                <details open>
+                    <summary>📁 2F Server Room</summary>
+                    <div class="tree-leaf">↳ ROW-A (Storage)</div>
+                    <div class="tree-leaf active">↳ ROW-B (AI NPU)</div>
+                    <div class="tree-leaf">↳ ROW-C (Network)</div>
+                </details>
+                <details>
+                    <summary>📁 3F Server Room</summary>
+                    <div class="tree-leaf">↳ ROW-A (Legacy)</div>
+                </details>
+            </details>
+        </div>
+        
+        <div class="user-info">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                <span>접속자: {{ display_name }}</span>
+                <a href="/logout" style="color:var(--blue); text-decoration:none;">로그아웃</a>
+            </div>
+            {% if role == 'admin' %}
+            <div class="btn-zero" onclick="document.getElementById('reauth-modal').classList.add('active')">
+                🔒 Sovereign Protocol (Admin)
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="main">
+        <div class="topbar">
+            <div class="nav-tabs">
+                <button class="tab-btn active" data-tab="floorplan">2D 상면 & 환경 관제</button>
+                <button class="tab-btn" data-tab="elevation">U-레벨 실장도</button>
+                <button class="tab-btn" data-tab="topology">네트워크 토폴로지</button>
+            </div>
+            <div style="display:flex; gap: 10px; align-items:center;">
+                <span style="font-size: 11px; color: var(--text-muted);">SIMULATION MODE</span>
+                <span style="display:inline-block; width:8px; height:8px; background:var(--green); border-radius:50%; box-shadow: 0 0 5px var(--green);"></span>
+            </div>
+        </div>
+        
+        <div class="content-area">
+            <div class="esg-kpi-bar">
+                <div class="kpi-box">
+                    <div style="font-size:11px; color:var(--text-muted);">Total Power Draw</div>
+                    <div class="kpi-val" id="val-power">0.0 <span class="kpi-unit">kW</span></div>
+                    <div class="ai-badge" id="ai-power-badge">Predict: --</div>
+                </div>
+                <div class="kpi-box">
+                    <div style="font-size:11px; color:var(--text-muted);">Real-time PUE</div>
+                    <div class="kpi-val" id="val-pue" style="color:var(--blue);">1.00</div>
+                    <div class="ai-badge" style="color:var(--text-muted); border-color:var(--border); background:transparent;">Target: 1.20</div>
+                </div>
+                <div class="kpi-box">
+                    <div style="font-size:11px; color:var(--text-muted);">Est. Carbon Footprint</div>
+                    <div class="kpi-val" id="val-carbon" style="color:var(--green);">0.0 <span class="kpi-unit">kgCO2e/h</span></div>
+                </div>
+                <div class="kpi-box">
+                    <div style="font-size:11px; color:var(--text-muted);">Est. Power Cost</div>
+                    <div class="kpi-val" id="val-cost" style="color:var(--purple);">₩ 0 <span class="kpi-unit">/h</span></div>
+                </div>
+            </div>
+
+            <div id="view-floorplan" class="view-section active">
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px;">
+                    <div class="panel" style="display:flex; flex-direction:column;">
+                        <div class="panel-title">
+                            AI Predictive Thermal Map
+                            <div class="workload-controls" style="width: 250px;">
+                                <button class="w-btn active" data-load="0.1">IDLE</button>
+                                <button class="w-btn" data-load="0.5">INFERENCE</button>
+                                <button class="w-btn danger" data-load="0.95">TRAINING</button>
+                            </div>
+                        </div>
+                        <div class="canvas-container"><canvas id="floorCanvas"></canvas></div>
+                    </div>
+                    
+                    <div style="display:flex; flex-direction:column; gap:15px;">
+                        <div class="panel" style="flex:1;">
+                            <div class="panel-title" style="color:var(--red); font-size:12px;">Active Alarms</div>
+                            <div class="alarm-list" id="alarm-container"></div>
+                        </div>
+                        <div class="panel" style="flex:1;">
+                            <div class="panel-title" style="font-size:12px;">Audit Trail</div>
+                            <div class="audit-log" id="audit-container"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="view-elevation" class="view-section">
+                <div class="panel" style="flex: 1;">
+                    <div class="panel-title">U-Level Rack Elevation (ROW-B AI Cluster)</div>
+                    <div class="elevation-container" id="rack-container"></div>
+                </div>
+            </div>
+
+            <div id="view-topology" class="view-section">
+                <div class="panel" style="flex: 1;">
+                    <div class="panel-title">Dynamic AI Network Topology</div>
+                    <div class="topo-container">
+                        <svg class="topo-svg" id="topo-svg"></svg>
+                        <div class="node core">CORE-RTR-01<br><span style="font-weight:normal; color:var(--text-muted);">400G</span></div>
+                        <div class="node spine" style="left: 20%;">SPINE-01<br><span style="font-weight:normal; color:var(--text-muted);">100G</span></div>
+                        <div class="node spine" style="left: 65%;">SPINE-02<br><span style="font-weight:normal; color:var(--text-muted);">100G</span></div>
+                        <div class="node leaf" style="left: 5%;">LEAF-A01</div>
+                        <div class="node leaf" style="left: 30%;" id="leaf-ai1">LEAF-B01</div>
+                        <div class="node leaf" style="left: 55%;" id="leaf-ai2">LEAF-B02</div>
+                        <div class="node leaf" style="left: 80%;">LEAF-C01</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="drilldown-panel" class="drilldown-panel">
+            <div class="drill-header">
+                <span style="font-size: 14px; font-weight: 700; color: var(--blue); font-family: 'JetBrains Mono';" id="drill-rack-id">RACK B-04</span>
+                <button style="background:transparent; border:none; color:var(--text-muted); cursor:pointer; font-size:18px;" id="btn-close-drill">&times;</button>
+            </div>
+            <div class="drill-content">
+                <div class="rack-mini" id="mini-rack"></div>
+                <div style="margin-top:10px;">
+                    <div style="font-size:11px; color:var(--text-muted); margin-bottom:5px;">ENVIRONMENTAL SENSORS</div>
+                    <div class="detail-row"><span>Temp</span><span class="detail-val" id="drill-temp">24.5 °C</span></div>
+                    <div class="detail-row"><span>AI Predict</span><span class="detail-val" id="drill-predict" style="color:var(--red);">--</span></div>
+                    <div class="detail-row"><span>Airflow</span><span class="detail-val" id="drill-airflow">1250 CFM</span></div>
+                    
+                    <div style="font-size:11px; color:var(--text-muted); margin-top:15px; margin-bottom:5px;">POWER & NETWORK</div>
+                    <div class="detail-row"><span>Power Draw</span><span class="detail-val" id="drill-power">12.4 kW</span></div>
+                    <div class="detail-row"><span>Network Link</span><span class="detail-val" style="color:var(--green);">400Gbps</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            // Tabs
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                    e.target.classList.add('active');
+                    const tabId = e.target.getAttribute('data-tab');
+                    document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
+                    document.getElementById('view-' + tabId).classList.add('active');
+                    if(tabId === 'floorplan') resizeCanvas();
+                });
+            });
+
+            // Workload
+            document.querySelectorAll('.workload-controls .w-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    document.querySelectorAll('.workload-controls .w-btn').forEach(b => b.classList.remove('active', 'danger'));
+                    e.target.classList.add('active');
+                    const load = parseFloat(e.target.getAttribute('data-load'));
+                    if(load > 0.8) e.target.classList.add('danger');
+                    fetch('/api/v1/control/workload', {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ target_workload: load })
+                    });
+                });
+            });
+
+            // Drilldown
+            const drillPanel = document.getElementById('drilldown-panel');
+            document.getElementById('btn-close-drill').addEventListener('click', () => drillPanel.classList.remove('open'));
+
+            function openDrillDown(rackId, temp, isAI, load) {
+                document.getElementById('drill-rack-id').innerText = rackId;
+                document.getElementById('drill-temp').innerText = temp.toFixed(1) + ' °C';
+                document.getElementById('drill-power').innerText = (temp * 0.45).toFixed(1) + ' kW';
+                document.getElementById('drill-predict').innerText = (temp + (isAI ? 15*load : 2)).toFixed(1) + ' °C';
+                document.getElementById('drill-airflow').innerText = Math.floor(1000 + (load * 800)) + ' CFM';
+                
+                let html = '';
+                for(let u=1; u<=42; u++) {
+                    let cls = '';
+                    if(isAI && u>5 && u<38) { cls = 'active'; if(temp > 50 && Math.random() > 0.5) cls = 'hot'; } 
+                    else if (!isAI && u>10 && u<30) { cls = 'active'; }
+                    html += `<div class="u-slot ${cls}"></div>`;
+                }
+                document.getElementById('mini-rack').innerHTML = html;
+                drillPanel.classList.add('open');
+            }
+
+            // Canvas 2D
+            const canvas = document.getElementById('floorCanvas');
+            const ctx = canvas.getContext('2d');
+            let racksData = [];
+
+            function resizeCanvas() { if(canvas.parentElement) { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; } }
+            window.addEventListener('resize', resizeCanvas); resizeCanvas();
+
+            function drawFloorPlan(load) {
+                if(canvas.width === 0) return;
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                racksData = [];
+                const rows = 3; const cols = 14;
+                const w = Math.min(25, (canvas.width - 150) / cols); const h = 45; const spX = 8; const spY = 40;
+                const startX = (canvas.width - (cols * (w + spX))) / 2; const startY = 30;
+
+                for(let r=0; r<rows; r++) {
+                    ctx.fillStyle = '#475569'; ctx.font = '600 10px Inter';
+                    if(r===0) ctx.fillText('ROW A: STORAGE', startX - 20, startY - 10);
+                    if(r===1) ctx.fillText('ROW B: AI CLUSTER', startX - 20, startY + h + spY - 10);
+
+                    for(let c=0; c<cols; c++) {
+                        let isAI = (r===1 || r===2);
+                        let temp = isAI ? 22 + (load * 60) + (Math.random()*4-2) : 21 + Math.random()*2;
+                        let rx = startX + c * (w + spX); let ry = startY + r * (h + spY);
+                        let color = temp < 28 ? '#3b82f6' : temp < 50 ? '#10b981' : temp < 70 ? '#f59e0b' : '#ef4444';
+                        
+                        ctx.fillStyle = color; ctx.fillRect(rx, ry, w, h);
+                        ctx.strokeStyle = '#0b0d14'; ctx.lineWidth = 2; ctx.strokeRect(rx, ry, w, h);
+                        racksData.push({ id: `RACK-${String.fromCharCode(65+r)}-${(c+1).toString().padStart(2,'0')}`, x: rx, y: ry, w: w, h: h, temp: temp, isAI: isAI });
+                    }
+                }
+            }
+
+            canvas.addEventListener('click', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const mouseX = e.clientX - rect.left; const mouseY = e.clientY - rect.top;
+                for(let r of racksData) {
+                    if(mouseX >= r.x && mouseX <= r.x + r.w && mouseY >= r.y && mouseY <= r.y + r.h) {
+                        openDrillDown(r.id, r.temp, r.isAI, window.currentLoad || 0.1); break;
+                    }
+                }
+            });
+
+            // Elevation
+            function updateElevation(load) {
+                const container = document.getElementById('rack-container');
+                if(container.innerHTML === '') {
+                    const racks = ['R2-B01', 'R2-B02', 'R2-B03', 'R2-B04'];
+                    racks.forEach((name, idx) => {
+                        let html = `<div class="rack-lg"><div style="text-align:center; color:#fff; font-size:11px; margin-bottom:5px;">${name}</div>`;
+                        for(let u=1; u<=42; u++) {
+                            let cls = ''; let lbl = '';
+                            if(u >= 40) { cls = 'background:#064e3b;'; lbl = 'ToR'; } else if(u >= 5 && u <= 38) { cls = 'background:#1e3a8a;'; lbl = 'HGX'; }
+                            html += `<div class="u-slot-lg" style="${cls}" id="u-lg-${idx}-${u}"><span>${u}U</span> <span>${lbl}</span></div>`;
+                        }
+                        html += `</div>`; container.innerHTML += html;
+                    });
+                }
+                for(let idx=0; idx<4; idx++) {
+                    for(let u=5; u<=38; u++) {
+                        let el = document.getElementById(`u-lg-${idx}-${u}`);
+                        if(el) { el.style.background = (load > 0.8 && Math.random() > 0.7) ? '#7f1d1d' : '#1e3a8a'; }
+                    }
+                }
+            }
+
+            // Topology
+            function drawTopology(load) {
+                const svg = document.getElementById('topo-svg');
+                if(!svg) return;
+                const links = [
+                    {x1:50, y1:10, x2:25, y2:35}, {x1:50, y1:10, x2:70, y2:35},
+                    {x1:25, y1:35, x2:10, y2:70}, {x1:25, y1:35, x2:35, y2:70},
+                    {x1:70, y1:35, x2:60, y2:70}, {x1:70, y1:35, x2:85, y2:70}
+                ];
+                let html = '';
+                links.forEach((l, i) => {
+                    let cls = 'link';
+                    if((i===3 || i===4) && load > 0.2) cls = 'link active';
+                    if((i===3 || i===4) && load > 0.8) cls = 'link hot active';
+                    html += `<path d="M${l.x1}% ${l.y1}% C${l.x1}% ${l.y1+15}%, ${l.x2}% ${l.y2-15}%, ${l.x2}% ${l.y2}%" class="${cls}" />`;
+                });
+                svg.innerHTML = html;
+            }
+
+            // Fetch Data
+            async function fetchState() {
+                try {
+                    const res = await fetch('/api/v1/state');
+                    if(!res.ok) return;
+                    const data = await res.json();
+                    window.currentLoad = data.workload;
+                    
+                    document.getElementById('val-power').innerHTML = `${data.it_power_kw} <span class="kpi-unit">kW</span>`;
+                    document.getElementById('val-pue').innerText = data.pue;
+                    document.getElementById('val-carbon').innerHTML = `${(data.it_power_kw * 0.42).toFixed(1)} <span class="kpi-unit">kgCO2e</span>`;
+                    document.getElementById('val-cost').innerHTML = `₩ ${Math.floor(data.it_power_kw * 120.5).toLocaleString()} <span class="kpi-unit">/h</span>`;
+
+                    const ai = data.ai_insights;
+                    if(ai) {
+                        const pb = document.getElementById('ai-power-badge');
+                        pb.innerText = `+30s Predict: ${ai.it_power_forecast_30s || '--'} kW`;
+                        if(ai.it_power_anomaly && ai.it_power_anomaly.is_anomaly) pb.classList.add('anomaly'); else pb.classList.remove('anomaly');
+                    }
+                    
+                    drawFloorPlan(data.workload); updateElevation(data.workload); drawTopology(data.workload);
+                    
+                    const alarmContainer = document.getElementById('alarm-container');
+                    if(data.workload > 0.8 && alarmContainer.children.length === 0) {
+                        alarmContainer.innerHTML = `
+                            <div class="alarm-item" id="alm-1"><div><strong style="color:var(--red);">CRITICAL</strong> | AI Thermal Runaway Predicted</div><button class="btn-ack" onclick="document.getElementById('alm-1').remove()">ACK</button></div>
+                        `;
+                    } else if (data.workload < 0.8) { alarmContainer.innerHTML = ''; }
+                } catch (err) {}
+            }
+
+            async function fetchAudit() {
+                try {
+                    const res = await fetch('/api/v1/audit');
+                    if(!res.ok) return;
+                    const data = await res.json();
+                    document.getElementById('audit-container').innerHTML = data.entries.map(e => `
+                        <div style="border-bottom:1px solid #1e293b; padding:4px 0;">
+                            <span style="color:#3b82f6">[${e.timestamp.split('T')[1].slice(0,-1)}]</span> 
+                            <span style="color:#10b981;">${e.user}</span>: <span style="color:#e2e8f0">${e.action}</span> 
+                        </div>
+                    `).join('');
+                } catch(err) {}
+            }
+
+            setInterval(fetchState, 1000);
+            setInterval(fetchAudit, 2000);
+            fetchState(); fetchAudit();
+
+            // Zeroization
+            document.getElementById('btn-open-zero')?.addEventListener('click', () => document.getElementById('reauth-modal').classList.add('active'));
+            document.getElementById('btn-confirm-zero').addEventListener('click', async () => {
+                const pw = document.getElementById('reauth-pw').value;
+                const res = await fetch('/api/v1/control/purge', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ password: pw }) });
+                if(res.ok) {
+                    document.getElementById('reauth-modal').classList.remove('active');
+                    alert("하드웨어 파기 명령이 전송되었습니다.");
+                } else { document.getElementById('reauth-error').style.display = 'block'; }
+            });
+        });
+    </script>
+</body>
+</html>
