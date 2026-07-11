@@ -1,4 +1,4 @@
-# Sovereign AI DCIM (dcim.kr)
+# Sovereign AI DCIM (dcim.kr----still testing)
 
 A Cyber-Physical Security (CPS) architecture Proof-of-Concept (PoC) and integrated control dashboard for Sovereign AI Data Centers. (Implementation of the architecture submitted to IEEE TDSC / arXiv)
 
